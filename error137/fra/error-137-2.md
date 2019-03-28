@@ -100,9 +100,9 @@ Mar 22 15:28:41 node3 kubelet[7481]: W0322 15:28:41.663651    7481 eviction_mana
 Du coup on peut voir que le conteneur est rentré dans un processus d'éviction et que celui-ci a été supprimé.
 J'ai donc l'explication de mon erreur 137.
 
-Pour autant pourquoi mon POD est-il rentré? dans un processus d'eviction?
+Pour autant pourquoi mon POD est-il rentré dans un processus d'eviction?
 
-Si on regarde plus précisement `kubelet` et particulièrement `eviction_manager`.
+On va donc regarder plus précisement `kubelet` et plus particulièrement `eviction_manager`.
 
 `journalctl -u kubelet | grep eviction_manager`
 
@@ -156,7 +156,9 @@ Une autre chose me choque
 Il y a tout un tas de POD qui rentrent dans le processus d'eviction qui sont pour moi particulièrement sensibles.
 pour exemple : `rook-ceph`, `kube-proxy`, `calico-node`
 
+Un autre point à creuser, Il va falloir comprendre ce processus et son orchestration.
 
+Et si on reprennait les bases en sortant du cluster et en repartant de docker.
 
 
 [< Précédent](error-137-1.md) | [Sommaire](error-137-0.md) | [Suivant >](error-137-3.md)
