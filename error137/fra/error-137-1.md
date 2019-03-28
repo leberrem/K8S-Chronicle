@@ -21,3 +21,8 @@ Et c'est là que l'histoire commence vraiment.
 A chaque fois qu'ils ont un plantage, ils ont une erreur `137`
 
 ![error137](/error137/img/error137.png)
+
+Cette erreur semble aléatoire et don cnon maitrisé.
+Il ne me faut pas plus pour piquer ma curiosité et tenter de comprendre ce qui se cache sous le capot.
+
+[< Précédent](error-137-0.md) | [Sommaire](error-137-0.md) | [Suivant >](error-137-2.md)
