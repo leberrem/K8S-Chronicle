@@ -156,9 +156,8 @@ Une autre chose me choque
 Il y a tout un tas de POD qui rentrent dans le processus d'eviction qui sont pour moi particulièrement sensibles.
 pour exemple : `rook-ceph`, `kube-proxy`, `calico-node`
 
-Un autre point à creuser, Il va falloir comprendre ce processus et son orchestration.
+Voilà donc un autre point à creuser, Il va falloir comprendre ce processus et son orchestration.
 
-Et si on reprennait les bases en sortant du cluster et en repartant de docker.
-
+Pour bien cerner le tout je vais tenter de repartir à la base en sortant du cluster et en revenant simplement à docker.
 
 [< Précédent](error-137-1.md) | [Sommaire](error-137-0.md) | [Suivant >](error-137-3.md)
