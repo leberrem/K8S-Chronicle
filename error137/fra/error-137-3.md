@@ -2,7 +2,7 @@
 
 Ce que je propose pour bien comprendre c'est de repartir sur les bases de docker et de vérifier les limites et tenter de voir le comportement des conteneurs. On transposera ensuite cette logique dans Kubernetes.
 
-### Test mémoire
+## Test mémoire
 
 Si vous voulez connaitre l'espace mémoire disponible dans un conteneur
 
@@ -108,7 +108,7 @@ Petit différence car on ne retrouve plus l'évènement `container oom`.
 C'est le processus standard OOM du système qui prend le relais pour éviter la saturation de notre serveur.
 Il faut bien prendre conscience que dans ce cas c'est le bien système qui choisi quoi arrêter et peut selectionner d'autres processus plus critiques que notre conteneur. Cependant docker ne défini pas de priorité OOM sur les conteneurs, mais en positionne une sur le daemon docker. de fait les conteneurs seront "killé" avant le daemon parent. Ouf...
 
-### Test CPU
+## Test CPU
 
 Maintenant qu'on a vu le comportement sur la mémoire. voyons ce qu'il se passe sur le CPU.
 
@@ -141,6 +141,8 @@ Un autre lien vers<br> la documentation du conteneur de stress test:<br>
 https://hub.docker.com/r/monitoringartist/docker-killer/
 
 ## Test disque
+
+### Filesystem
 
 Avant tout il faut bien faire la différence entre un point de montage dans un conteneur qui vient du système hôte et l'espace disque éphémère qui sera utilisable et attribuable dans un conteneur.
 
@@ -182,6 +184,8 @@ exemples :
 * Suppression de l'ensemble des images : `docker rmi -f $(docker images -aq)`
 
 Pour aller plus loin (ou comme source d'inspiration) Spotify propose une image docker permettant de lancer quelques commandes de purge avec différents scénarios : https://github.com/spotify/docker-gc
+
+### Log
 
 Il ne faut pas non plus oublié un autre point de saturation possible qui sont les logs des conteneurs.
 En effet les conteneurs pour respecter le `The Twelve-Factor App` tracent dans la STDOUT mais sur l'hote les traces sont stockées sur le filesystem.

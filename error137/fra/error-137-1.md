@@ -7,6 +7,7 @@ Pour planter le décors on a un cluster Kubernetes avec 3 nodes master, 3 nodes 
 Chaque noeud worker possedant 2 volumes rattachés pour du provisionning local et du provisionning distribué via ROOK CEPH.
 Une instance indépendant pour GITLAB et enfin un bastion pour accéder à tout ça.
 On automatise le tout avec terraform et ansible.
+Techniquement on a une installation classique de kubernetes utilisant systemd et docker.
 
 Voici un petit schéma très simplifié.
 
@@ -22,7 +23,7 @@ A chaque fois qu'ils ont un plantage, ils ont une erreur `137`
 
 ![error137](/error137/img/error137.png)
 
-Cette erreur semble aléatoire et don cnon maitrisé.
-Il ne me faut pas plus pour piquer ma curiosité et tenter de comprendre ce qui se cache sous le capot.
+Cette erreur semble aléatoire et donc non maitrisé.
+Il ne me faut pas plus pour piquer ma curiosité et tenter de comprendre ce qui se cache derrière.
 
 [< Précédent](error-137-0.md) | [Sommaire](error-137-0.md) | [Suivant >](error-137-2.md)
