@@ -81,6 +81,8 @@ Et plus interessant le pod du traitement : `runner-hi4fn6ay-project-28-concurren
 
 A partir de ces informations on va pouvoir regarder sur chacun des noeuds ce qui se passe sur le journal des services.
 
+TODO : shema des PODS runner, helper et concurrent
+
 On commence par regarder sur chacun des noeuds qui parle de notre conteneur.
 
 `journalctl | grep runner-hi4fn6ay-project-28-concurrent-0khrql `
