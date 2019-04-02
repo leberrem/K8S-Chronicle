@@ -2,7 +2,7 @@
 
 Ce que je propose pour bien comprendre c'est de repartir sur les bases de docker et de vérifier les limites et tenter de voir le comportement des conteneurs. On transposera ensuite cette logique dans Kubernetes.
 
-### Test mémoire.
+### Test mémoire
 
 Si vous voulez connaitre l'espace mémoire disponible dans un conteneur
 
@@ -108,7 +108,7 @@ Petit différence car on ne retrouve plus l'évènement `container oom`.
 C'est le processus standard OOM du système qui prend le relais pour éviter la saturation de notre serveur.
 Il faut bien prendre conscience que dans ce cas c'est le bien système qui choisi quoi arrêter et peut selectionner d'autres processus plus critiques que notre conteneur. Cependant docker ne défini pas de priorité OOM sur les conteneurs, mais en positionne une sur le daemon docker. de fait les conteneurs seront "killé" avant le daemon parent. Ouf...
 
-### Test CPU.
+### Test CPU
 
 Maintenant qu'on a vu le comportement sur la mémoire. voyons ce qu'il se passe sur le CPU.
 
@@ -134,10 +134,13 @@ CONTAINER ID        NAME                CPU %               MEM USAGE / LIMIT   
 
 On peut donc jouer sur cette limite pour répartir la CPU entre plusieurs conteneurs, mais on ne pourra jamais attribuer plus que la quantité disponible sur le système hôte. Moins de risque dans ce cas d'être "killé" par un processus système car la CPU restante sera automatiquement redistribuée.
 
-Si vous voulez aller plus loin dans les valeurs CPU/MEM, vous pouvez consulter le doc officielle docker :
+Si vous voulez aller plus loin dans les valeurs CPU/MEM, vous pouvez consulter le doc officielle docker :<br>
 https://docs.docker.com/config/containers/resource_constraints/
 
-## test disque
+Un autre lien vers<br> la documentation du conteneur de stress test:<br>
+https://hub.docker.com/r/monitoringartist/docker-killer/
+
+## Test disque
 
 Avant tout il faut bien faire la différence entre un point de montage dans un conteneur qui vient du système hôte et l'espace disque éphémère qui sera utilisable et attribuable dans un conteneur.
 
@@ -189,13 +192,19 @@ Par dafaut il n'y a pas de rotation.
 Il existe quelques options permettant de régler le comportement par défaut.
 https://docs.docker.com/config/containers/logging/json-file/
 
-Exemple de rotation :
-docker run --log-opt max-size=10m --log-opt max-file=3 ubuntu echo hello world
+Voici un petit test de rotation
+
+```
+$ docker run --rm --log-opt max-size=10k --log-opt max-file=3 ubuntu /bin/sh -c 'while true; do echo $(date); sleep 0.1; done'
+
+$ ls -l /var/lib/docker/containers/535e254c0eb27a4d711efc6994e5e4878a63053b1c2f7be1832cedf66b82493b/*.log*
+-rw-r----- 1 root root  3534 avril  2 15:40 535e254c0eb27a4d711efc6994e5e4878a63053b1c2f7be1832cedf66b82493b-json.log
+-rw-r----- 1 root root 10096 avril  2 15:40 535e254c0eb27a4d711efc6994e5e4878a63053b1c2f7be1832cedf66b82493b-json.log.1
+-rw-r----- 1 root root 10092 avril  2 15:40 535e254c0eb27a4d711efc6994e5e4878a63053b1c2f7be1832cedf66b82493b-json.log.2
+```
 
 <u>Remarque:</u><br>
 J'arrêterai la démonstration ici, mais il est possible d'agir sur d'autres paramètres de limite comme les forks, le réseau, etc...
-
-Voici le lien vers la documentation du conteneur de stress test: https://hub.docker.com/r/monitoringartist/docker-killer/
 
 
 [< Précédent](error-137-2.md) | [Sommaire](error-137-0.md) | [Suivant >](error-137-4.md)
