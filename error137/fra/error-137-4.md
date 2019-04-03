@@ -2,16 +2,200 @@
 
 ## Test mémoire
 
-Par défaut Kubernetes prévoit la définition de limites par défaut. Ceci se généralement au niveau du namespace.
+Par défaut Kubernetes prévoit la définition par défaut des limites unitaires par conteneurs. Ceci se fait au niveau du namespace. Bien evidement cette limite peut être surchargée à la création de chaque conteneur mais ne pourra exceder les valeurs man/min définies sur le namespace.
 
-https://kubernetes.io/docs/tasks/administer-cluster/manage-resources/memory-default-namespace/
+```
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: mem-limit-range
+spec:
+  limits:
+  - default:
+      memory: 512Mi
+    defaultRequest:
+      memory: 256Mi
+    max:
+      memory: 1Gi
+    min:
+      memory: 128Mi
+    type: Container
+```
 
+Si on créé un conteneur sans définition de limite il prendra donc les valeurs par défaut du namespace.
+
+Il est possible de définir des min/max au niveau POD ce qui aura pour impact de contrôler à la création la somme des limites demandées pour chacun des conteneurs du POD.
+
+On peut aussi définir ques quotas ce qui permet de limiter la consommation de l'ensemble des conteneurs d'un namespace.
+
+exemple:
+```
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: mem-quota
+spec:
+  hard:
+    requests.memory: 1Gi
+    limits.memory: 2Gi
+```
+
+Nous nous limiterons pour le moment à étudier les `limites` pour comprendre notre erreur 137. Mais il est tout aussi important de se pencher sur les `request` qui sont la base du système d'élection des noeuds et donc tout aussi sensible.
+
+Regardons donc ce qu'il se passe à la création et le résultat dans docker sur le node.
+
+```
+apiVersion: v1
+kind: Pod
+metadata:
+  name: default-mem-demo
+spec:
+  containers:
+  - name: default-mem-demo-ctr
+    image: nginx
+```
+
+Si on regarde sur le node directement au travers de docker.
+
+```
+$ docker stats
+CONTAINER ID        NAME                                                                                                          CPU %               MEM USAGE / LIMIT     MEM %               NET I/O             BLOCK I/O           PIDS
+62d6fe89f68e        k8s_default-mem-demo-ctr_default-mem-demo_default-mem-example_4571c6e9-55d5-11e9-a451-080027ac049f_0                0.00%               2.148MiB / 512MiB     0.42%               1.12kB / 0B         0B / 0B
+        2
+```
+
+On voit bien que notre limite a bien été positionnée sur le conteneur.
+
+Il est temps de refaire notre stress test.
+
+```
+apiVersion: v1
+kind: Pod
+metadata:
+  name: stress-test
+spec:
+  containers:
+  - name: membomb
+    image: monitoringartist/docker-killer
+    args: ["membomb"]
+```
+
+Maintenant regardons l'état de notre POD.
+
+```
+$ kubectl get pod stress-test -n default-mem-example
+NAME          READY   STATUS      RESTARTS   AGE
+stress-test   0/1     OOMKilled   2          28s
+```
+
+Regardons encore plus en détail
+```
+$ kubectl get pod stress-test --output=yaml
+[...]
+  containerStatuses:
+  - containerID: docker://4ea051753d88a4d1e2af858b2dbdfa4400cdb13afbeea844109df885a1fc8561
+    image: monitoringartist/docker-killer:latest
+    imageID: docker-pullable://monitoringartist/docker-killer@sha256:85ba7f17a5ef691eb4a3dff7fdab406369085c6ee6e74dc4527db9fe9e448fa1
+    lastState:
+      terminated:
+        containerID: docker://4ea051753d88a4d1e2af858b2dbdfa4400cdb13afbeea844109df885a1fc8561
+        exitCode: 137
+        finishedAt: "2019-04-03T06:41:24Z"
+        reason: OOMKilled
+        startedAt: "2019-04-03T06:41:24Z"
+[...]
+```
+
+Et nous voilà à nouveau en face de notre fameuse erreur 137.
 
 ## Test CPU
+
+Le raisonnement pour ces lmites CPU va être exactement le même que précédement pour la mémoire.
+
+```
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: cpu-limit-range
+spec:
+  limits:
+  - default:
+      cpu: 0.8
+    defaultRequest:
+      cpu: 0.5
+    max:
+      cpu: 1
+    min:
+      cpu: 0.2
+    type: Container
+```
+
+<u>remarque:</u><br>
+Les limites peuvent aussi s'exprimer en millième ce qui donnerai pour 0.2 = 200m soit 2%
+
+De la même façon que la mémoire, on peut agir sur des quota.
+
+On peut aussi définir des quotas, ce qui permet de limiter la consommation de l'ensemble des conteneurs d'un namespace.
+
+```
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: cpu-quota
+spec:
+  hard:
+    requests.cpu: "1"
+    limits.cpu: "2"
+```
+
+Nous pouvons donc reprendre notre petit stress test et voir comment notre conteneur se comporte.
+
+```
+apiVersion: v1
+kind: Pod
+metadata:
+  name: stress-test
+spec:
+  containers:
+  - name: membomb
+    image: monitoringartist/docker-killer
+    args: ["cpubomb"]
+```
+
+Regardons sur le node directement au travers de docker.
+
+```
+$ docker stats
+CONTAINER ID        NAME                                                                                                          CPU %               MEM USAGE / LIMIT     MEM %               NET I/O             BLOCK I/O           PIDS
+d538c1c458da        k8s_cpubomb_stress-test_default-mem-example_fd6a8c28-55de-11e9-a451-080027ac049f_2                            81.24%              2.188MiB / 512MiB     0.43%               1.33kB / 0B         0B / 0B
+```
+
+On voit que notre conteneur est capé aux alentours de 80% qui est bien notre limite par défaut.
 
 ## Test disque
 
 ### Filesystem
+
+Kubernetes introduit la notion de ephemeral-storage qui constitue la zone de sotckage allouée à un POD.
+Cet espace de stockage représente la somme du stockage consommé (layer writable, logs, emptyDir volumes)
+
+Comme les autres ressources il est possible d'y appliquer des limites.
+
+```
+apiVersion: v1
+kind: Pod
+metadata:
+  name: frontend
+spec:
+  containers:
+  - name: linux
+    image: ubuntu
+    resources:
+      requests:
+        ephemeral-storage: "2Gi"
+      limits:
+        ephemeral-storage: "4Gi"
+```
 
 ### Log
 

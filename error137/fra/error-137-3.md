@@ -1,6 +1,7 @@
 # Retour aux sources
 
 Ce que je propose pour bien comprendre c'est de repartir sur les bases de docker et de vérifier les limites et tenter de voir le comportement des conteneurs. On transposera ensuite cette logique dans Kubernetes.
+J'essaierai volontairement de rester dans cet article au niveau de `docker`. Mais pour aller plus loin, il faudrait regarder les `cgroups` qui est la base de l'isolation et gestion des ressources et ceci sous forme d'arbre.
 
 ## Test mémoire
 
@@ -56,8 +57,8 @@ root@66c71e1e685e:/# cat /sys/fs/cgroup/memory/memory.limit_in_bytes
 9223372036854771712
 ```
 
-La valeur remontée est bien supérieure à ce que peut fournir le système.
-Par contre la commande `docker stats` indique bien la mémoire disponible du système hôte.
+La valeur remontée correspond à "no_limit".
+Et la commande `docker stats` indique bien la mémoire disponible du système hôte.
 
 ```
 ONTAINER ID        NAME                 CPU %               MEM USAGE / LIMIT   MEM %               NET I/O             BLOCK I/O           PIDS
@@ -145,8 +146,9 @@ https://hub.docker.com/r/monitoringartist/docker-killer/
 ### Filesystem
 
 Avant tout il faut bien faire la différence entre un point de montage dans un conteneur qui vient du système hôte et l'espace disque éphémère qui sera utilisable et attribuable dans un conteneur.
+Petit rappel de principe, un conteneur ne prend pas de place à sa création car utilise le layer de l'image de référence. Il commence à utiliser du stockage que lorsqu'il persiste des données sur son filesystem interne.
 
-Nous allons nous concentrer ici sur l'espace éphémère.
+Nous allons donc nous concentrer ici sur l'espace éphémère.
 
 ```
 $ docker run --rm -it ubuntu bash
@@ -164,9 +166,6 @@ $ df -h
 Sys. de fichiers Taille Utilisé Dispo Uti% Monté sur
 /dev/sda1           20G     14G  4,6G  76% /
 ```
-
-
-docker run -it --storage-opt size=120G fedora /bin/bash
 
 Du coup il va falloir être vigilant avec cet espace de stockage.
 
@@ -199,7 +198,7 @@ https://docs.docker.com/config/containers/logging/json-file/
 Voici un petit test de rotation
 
 ```
-$ docker run --rm --log-opt max-size=10k --log-opt max-file=3 ubuntu /bin/sh -c 'while true; do echo $(date); sleep 0.1; done'
+$ docker run --rm --log-opt max-size=10k --log-opt max-file=3 ubuntu /bin/sh -c 'while true; do echo $(date); sleep 0.1; done;'
 
 $ ls -l /var/lib/docker/containers/535e254c0eb27a4d711efc6994e5e4878a63053b1c2f7be1832cedf66b82493b/*.log*
 -rw-r----- 1 root root  3534 avril  2 15:40 535e254c0eb27a4d711efc6994e5e4878a63053b1c2f7be1832cedf66b82493b-json.log
