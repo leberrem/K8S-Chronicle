@@ -183,19 +183,70 @@ Comme les autres ressources il est possible d'y appliquer des limites.
 
 ```
 apiVersion: v1
+kind: LimitRange
+metadata:
+  name: ephemeral-limit-range
+spec:
+  limits:
+  - default:
+      ephemeral-storage: "512Mi"
+    defaultRequest:
+      ephemeral-storage: "256Mi"
+    type: Container
+```
+
+Dans l'exmple on applique des valeurs par défaut sur le namespace, mais on peut bien evidement les surcharger à la création de chacun des POD.
+
+Je créé donc mon POD en ayant préalablement positionné les limites sur le namespace.
+
+```
+apiVersion: v1
 kind: Pod
 metadata:
-  name: frontend
+  name: ubuntu
 spec:
   containers:
   - name: linux
     image: ubuntu
-    resources:
-      requests:
-        ephemeral-storage: "2Gi"
-      limits:
-        ephemeral-storage: "4Gi"
+    command: [ "/bin/bash", "-c", "--" ]
+    args: [ "while true; do sleep 30; done;" ]
 ```
+
+je regarde l'espace disque alloué dans le POD
+
+```
+# kubectl exec -it ubuntu /bin/bash
+root@ubuntu:/#  df -h
+
+Filesystem      Size  Used Avail Use% Mounted on
+overlay          17G  2.2G   13G  15% /
+```
+On peut voir que le disque n'indique pas la limite de ephemeral-storage mais l'espace de stockage du système hôte.
+Il va donc falloir faire attention car il n'est pas possible dans les conteneurs de connaitre dynamiquement la limite définie. On risque donc de la dépasser facilement.
+
+C'est ce qu'on va tester en créant un fichier fichier de 1G.
+
+```
+# kubectl exec -it ubuntu /bin/bash
+root@ubuntu:/#  fallocate -l 1G test.img
+```
+Le fichier est bien créé et le POD n'est pas arrêté immediatement, mais si on attend un peu.
+
+```
+root@ubuntu:/# command terminated with exit code 137
+```
+
+Revoilà notre erreur 137
+
+Si on regarde le description de notre POD
+```
+$ kubectl describe pod ubuntu
+[...]
+  Warning  Evicted           76s                    kubelet, minikube  Pod ephemeral local storage usage exceeds the total limit of containers 512Mi.
+  Normal   Killing           76s                    kubelet, minikube  Killing container with id docker://linux:Need to kill Pod
+```
+
+Le POD a bien été errêté car il a dépassé les limites définies.
 
 ### Log
 
